@@ -71,11 +71,29 @@ function parse(filename)
             return;
         }
 
+        const special = new Set(["true", "false", "null", "undefined"]);
         for(let i = 0; i<arr.length; i++)
         {
             //check that each key begins with " and ends with "
-            const key = arr[i].split(":")[0];
-            if(key[0] !== '"' || key[key.length - 1] !== '"')
+            const pair = arr[i].split(":");
+
+            const key = pair[0];
+            if(key[0] !== `"` || key[key.length - 1] !== `"`)
+            {
+                console.log("invalid");
+                return;
+            }
+
+            const val = pair[1];
+            const isNumber = parseInt(val);
+            const isSpecial = special.has(val);
+            const isString = val[0] === `"` && val[val.length - 1] === `"`;
+
+            //make a recursive function
+            const isObject = false;
+
+            const notValidValue = !(isNumber || isSpecial || isString || isObject);
+            if(notValidValue)
             {
                 console.log("invalid");
                 return;
@@ -83,7 +101,6 @@ function parse(filename)
         }
 
         console.log("valid");
-
     });
 }
 
