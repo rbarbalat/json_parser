@@ -1,43 +1,115 @@
-const fs = require("fs");
+//since readFile is async need to use its promises functionality
 
-function parse(filename)
+const fs = require('fs').promises;
+//import { promises as fs } from "fs";
+
+//to keep the full functionality of fs, import it and fs.promises separately
+
+async function parse(filename)
 {
-    fs.readFile(filename, "utf8", (err, data) => {
-        if (err) {
+    function checkObject(str)
+    {
+        //build key
+        //build value
+        return true;
+    }
+    function checkArray(str)
+    {
+        //build element
+        return true;
+    }
+    function helper(str)
+    {
+        //all new lines and single space chars have already been removed
+        if(str === "{}" || str === "[]") return true;
+
+        const openClose = str[0] + str[str.length - 1];
+
+        if(openClose === "{}") checkObject();
+        if(openClose === "[]") checkArray();
+        //return false;
+
+        //can't do this b/c of commas inside arrays and objects that are values
+        //const arr = str.split(",");
+
+        //find returns undefined or the element you are searched for,
+        //normally the ele is truthy but in this case it is the empty string which is falsy
+        // const extraComma = arr.find(ele => ele === "") === "";
+        // if(extraComma) return false;
+
+        const special = new Set(["true", "false", "null", "undefined"]);
+        //adjust indexes to exclude the opener and closer
+        //iterate through the string, build key (check if valid) then build value,
+        let buildKey = true;
+        let buildVal = false;
+        let key = "";
+        let val = "";
+        let i = 1;
+        while(i < str.length - 1)
+        {
+            //first and last chars of a key must be "
+            if(buildKey && key.length === 0 && str[i] !== `"`) return false;
+            if(buildKey && str[i] === ":" && str[i-1] !== `"`) return false;
+
+            //key is complete and valid
+            if(buildKey && str[i] === ":" && str[i-1] === `"`)
+            {
+                buildKey = false;
+                buildVal = true;
+            }
+            //keep building the key
+            if(buildKey)
+            {
+                key += str[i]
+                continue;
+                //check continue in while loop
+            }
+
+            if(buildVal) val += str[i];
+
+        }
+        // for(let i = 0; i<arr.length; i++)
+        // {
+        //     //check that each key begins with " and ends with "
+        //     const pair = arr[i].split(":");
+        //     console.log(pair);
+
+        //     const key = pair[0];
+        //     if(key[0] !== `"` || key[key.length - 1] !== `"`) return false;
+
+        //     const val = pair[1];
+        //     const isNumber = parseInt(val);
+        //     const isSpecial = special.has(val);
+        //     const isString = val[0] === `"` && val[val.length - 1] === `"`;
+
+        //     //make a recursive function
+        //     const isObject = helper(val);
+
+        //     const notValidValue = !(isNumber || isSpecial || isString || isObject);
+        //     if(notValidValue) return false;
+        // }
+
+        return true;
+    }
+    const res = await fs.readFile(filename, "utf8", (err, data) => {
+        if (err)
+        {
           console.log(filename + " could not be opened");
           return;
         }
 
-        //the string must represent either an object or an array
-        //must start/end with { and } or [ and ]
-
-        const obj = {
-            "{": "}",
-            "[": "]"
-        }
-
-        //remove spaces and "\n" from before and after the obj/array starts
-        data = data.trim();
-        //console.log(data);
-
-        const emptyFile = data.length === 0;
-        const invalidOpen = obj[data[0]] === undefined;
-        const invalidClose = data.length === 1 || obj[data[0]] !== data[data.length - 1];
-
-        //console.log(emptyFile);
-        //console.log(invalidOpen);
-        //console.log(invalidClose);
-
-        if(emptyFile || invalidOpen || invalidClose)
+        if(data.length === 0)
         {
-            console.log("invalid");
+            console.log("invalid")
             return;
         }
 
+        //check for invalid single quotes and backticks, remove spaces and new lines
         let str = "";
-        //loop excludes zeroeth and final indexes
-        for(let i = 1; i<data.length-1; i++)
+        for(let i = 0; i<data.length; i++)
         {
+            //it is ok to also exclude spaces from inside valid strings b/c they
+            //stay valid strings i.e "hello world" => "helloworld"
             if(data[i] !== "\n" && data[i] !== " ") str += data[i];
 
             if(data[i] === "'" || data[i] === "`")
@@ -47,62 +119,12 @@ function parse(filename)
             }
         }
 
-        //data was "{}" or "[]"
-        if(str.length === 0)
-        {
-            console.log("valid");
-            return;
-        }
-
-        const arr = str.split(",");
-        //console.log(arr);
-
-        //since the zeroeth and last ele aren't included in the string
-        //any comma directly to the left of the opening symbol or
-        //directly to the right of the closing symbol
-        //or several in a row will result in the emptry string being an element of arr
-
-        //find returns undefined or the element you are searched for,
-        //normally the ele is truthy but in this case it is the empty string which is falsy
-        const extraComma = arr.find(ele => ele === "") === "";
-        if(extraComma)
-        {
-            console.log("invalid");
-            return;
-        }
-
-        const special = new Set(["true", "false", "null", "undefined"]);
-        for(let i = 0; i<arr.length; i++)
-        {
-            //check that each key begins with " and ends with "
-            const pair = arr[i].split(":");
-
-            const key = pair[0];
-            if(key[0] !== `"` || key[key.length - 1] !== `"`)
-            {
-                console.log("invalid");
-                return;
-            }
-
-            const val = pair[1];
-            const isNumber = parseInt(val);
-            const isSpecial = special.has(val);
-            const isString = val[0] === `"` && val[val.length - 1] === `"`;
-
-            //make a recursive function
-            const isObject = false;
-
-            const notValidValue = !(isNumber || isSpecial || isString || isObject);
-            if(notValidValue)
-            {
-                console.log("invalid");
-                return;
-            }
-        }
-
-        console.log("valid");
-    });
+        //console.log(str);
+        //console.log(str.split(","));
+        // if(helper(str)) console.log("valid");
+        // else            console.log("invalid");
+    })
+    return res
 }
 
-//readFile is async
 parse(process.argv[2]);

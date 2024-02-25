@@ -1,5 +1,7 @@
-{
-    "name": "roman",
-    "age": 37,
-    "booleans": [true, false]
-}
+[
+    {
+        "name": "roman",
+        "age": 37,
+        "booleans": [true, false]
+    }
+]
